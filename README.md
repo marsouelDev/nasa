@@ -70,7 +70,7 @@ cd frontend
 npm run dev
 ```
 
-Application : http://localhost:5173 (proxy/requÃªtes vers lâ€™API via `VITE_API_URL`, dÃ©faut `http://127.0.0.1:8000/api`, voir `frontend/.env.example`).
+Application : http://localhost:5174 (proxy/requÃªtes vers lâ€™API via `VITE_API_URL`, dÃ©faut `http://127.0.0.1:8000/api`, voir `frontend/.env.example`).
 
 ## DonnÃ©es et modÃ¨le
 
@@ -139,8 +139,8 @@ Frontend : `VITE_API_URL` (voir `frontend/.env.example`).
 - **SMS/USSD simulÃ©s** : aucun message rÃ©el nâ€™est transmis et aucun rÃ©seau mobile nâ€™est contactÃ©. Les envois sont journalisÃ©s en base ; lâ€™USSD/webhook renvoie des rÃ©ponses texte de dÃ©monstration.
 - **Celery en mode eager, sans Redis** : les tÃ¢ches dâ€™alerte sâ€™exÃ©cutent immÃ©diatement (dÃ©mo) ; pas de file, de worker dÃ©diÃ© ni de planification distribuÃ©e.
 - **Endpoints de dÃ©monstration ouverts (`AllowAny`)** : inscription, simulation SMS/USSD et dÃ©clenchement dâ€™alertes sont accessibles sans jeton pour la console de dÃ©mo ; Ã  protÃ©ger (authentification/signature) avant toute exposition rÃ©elle.
-- **Carte / GIBS** : lâ€™archive NDVI 8 jours commence le 2025-02-12 et les dates sont discontinues ; un repli sur le composite prÃ©cÃ©dent est prÃ©vu mais **non validÃ© en conditions rÃ©elles** sur tous les cas de tuiles manquantes. `maxzoom` natif : NDVI/TrueColor 9, LST 7.
-- **PWA / hors-ligne** : service worker enregistrÃ© en production uniquement ; comportement **non testÃ© hors-ligne** de bout en bout.
+- **Carte / GIBS** : l’archive NDVI 8 jours commence le 2025-02-12 et les dates sont discontinues ; un repli sur le composite précédent est prévu mais le **composite de repli GIBS n’est pas testé en conditions réelles**. `maxzoom` natif : NDVI/TrueColor 9, LST 7.
+- **PWA / hors-ligne** : service worker enregistré en production uniquement ; **service worker non testé hors-ligne** de bout en bout.
 - **IcÃ´nes PWA provisoires** : icÃ´nes gÃ©nÃ©rÃ©es pour la dÃ©mo, Ã  remplacer par des visuels dÃ©finitifs.
 - **DonnÃ©es et modÃ¨le** : valeurs issues de la maille NASA POWER (~0,5Â°), pas dâ€™une parcelle ; sÃ©ries SMAP/MODIS temporelles non branchÃ©es cÃ´tÃ© backend ; notes/fixtures de rotation Ã  valider avec des agronomes ; prÃ©cision du modÃ¨le Ã  interprÃ©ter avec prudence (cible proche de certaines variables). Tout rÃ©sultat est **Ã  valider avec un agronome**.
 - **Bundle** : le chunk initial est < 500 kB, mais les chunks lazy (carte MapLibre, graphiques) restent volumineux.
