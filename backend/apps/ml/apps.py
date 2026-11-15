@@ -1,0 +1,10 @@
+"""Configuration de l'application ml."""
+
+from django.apps import AppConfig
+
+
+class MlConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.ml"
+    label = "ml"
+    verbose_name = "Modèles de prévision"

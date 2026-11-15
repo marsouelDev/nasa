@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Django
+db.sqlite3
+*.sqlite3
+backend/db.sqlite3
+backend/exports/
+backend/media/
+backend/staticfiles/
+staticfiles/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Modèles et données lourdes
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+backend/data/cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Divers
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.log

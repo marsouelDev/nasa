@@ -1,43 +1,106 @@
 # AGENTS.md
 
-## Repo at a glance
+## Contexte
 
-Tiny workspace (3 files, **not a git repo**) for the French-language "AgroSentry Cameroun" hackathon:
-turn NASA Earth-observation data into sowing/rotation advice for smallholders (pilot zone **Bafia**,
-~4.75°N, 11.23°E).
+Dépôt du projet **AgroSentry** (hackathon, Bafia, Cameroun) : aide à la décision
+agro-climatique à partir de données NASA POWER. Dépôt git, remote `origin`
+(`github.com/marsouelDev/nasa`), branche `main`. Un commit par phase, pas de push
+automatique.
 
-- `Cahier_des_charges_AgroSentry_Cameroun_v4_2.docx` — single source of truth (spec, in French).
-  Read it before changing scope, data sources or rotation logic.
-- `nasa_power_edea.py` — standalone NASA POWER fetch + CSV + rainfall/temperature plot.
-- `download-all-2026-11-14_15-29-10.py` — untouched ASF-generated bulk downloader for two NISAR L0B
-  HDF5 files. Per spec §18 this raw radar product is out of MVP scope: don't debug or extend it,
-  and don't edit the generated file unless explicitly asked.
+**Sources à lire avant de coder**
+- `AGROSENTRY.md` — cahier des charges d'exécution (6 phases). Fait foi sur la stack.
+- `Cahier_des_charges_AgroSentry_Cameroun_v4_3.docx` — vision produit (docx non lisible
+  directement ; demander un export texte ou lire via conversion).
+- `agrosentry_model.py` — prototype onset + Random Forest (à porter en phase 2).
+- `agrosentry_carte_gibs.html` — prototype de carte Leaflet (à porter en phase 4).
+- `nasa_power_edea.py` — ancien script Edéa, réutiliser seulement la logique POWER.
 
-The stack described in the spec (FastAPI, Pandas/Scikit-Learn/Prophet, React+Vite PWA, Leaflet,
-SQLite, Africa's Talking SMS) and the prototypes it mentions (`agrosentry_carte_gibs.html`,
-`agrosentry_model.py`) **do not exist in this directory yet**. Treat them as a plan, not as code
-you can import or wire up.
+**Stack imposée** : Django 5.2 LTS + Django REST Framework (backend), React + Vite (frontend).
+Pas de FastAPI. `download-all-*.py` et le fichier `.h5` NISAR sont hors périmètre : ne pas
+les lancer, les modifier ou les committer.
 
-## Running
+## État des phases
 
-- `python nasa_power_edea.py` from the repo root. System Python is 3.14.3; `requests` and `pandas`
-  are installed, **`matplotlib` is not** — the script dies on import until you `pip install matplotlib`.
-- Outputs `nasa_power_edea.csv` (UTF-8 with BOM, for Excel FR) and `nasa_power_edea.png` in the
-  current directory. It ends on `plt.show()`, which blocks a non-interactive run; use
-  `MPLBACKEND=Agg` and/or skip `show()` for batch runs. No CSV/PNG is checked in.
-- No tests, lint, typecheck or CI. Verification = run the script and sanity-check the CSV
-  (row count, column names, no `-999` left).
-- The ASF downloader prompts interactively for Earthdata credentials, caches cookies in
-  `~/.bulk_download_cookiejar.txt`, writes multi-GB files into the CWD and skips files whose size
-  already matches the remote. Don't launch it casually.
+1. **Backend Django + ingestion POWER — terminée** (en attente de validation).
+2. Modèle ML (onset + Random Forest) — à faire.
+3. Moteur de rotations — à faire.
+4. Frontend React/Vite/PWA + carte MapLibre 3D — à faire.
+5. SMS/USSD simulés — à faire.
+6. Finition (README, lint, limites, AGENTS.md) — à faire.
 
-## Gotchas
+S'arrêter et attendre validation à la fin de chaque phase. Ne jamais annoncer une
+fonctionnalité sans l'avoir testée.
 
-- `nasa_power_edea.py` hardcodes **Edéa** (3.80, 10.13) and 2025 (`AAAAMMJJ` strings), while the
-  spec's pilot zone is **Bafia**. Confirm coordinates/period before extending the pipeline; don't
-  silently overwrite them.
-- NASA POWER daily point API: `community=AG`, dates `YYYYMMDD`; missing values come back as `-999`
-  and must be replaced before any stats (the script does this).
-- Every run hits the network; there is no local cache, although the spec requires one ("cache local").
-- Keep comments, docstrings, printed messages and any user-facing text **in French**, matching the
-  existing code and deliverables; preserve `encoding="utf-8-sig"` on CSV export.
+## Commandes (Windows PowerShell)
+
+```powershell
+# Installation (une fois)
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+
+# Base + données réelles (réseau requis, ~15 s)
+cd backend
+python manage.py migrate
+python manage.py ingest_power --zone bafia
+
+# Tests — DOIT être lancé depuis backend/, sinon 0 test découvert
+python manage.py test
+
+# Serveur + doc OpenAPI
+python manage.py runserver
+# http://127.0.0.1:8000/api/  ·  /api/docs/  ·  /api/schema/  ·  /admin/
+```
+
+- `manage.py` recharge `backend/../.env` et force stdout/stderr en UTF-8 (Windows).
+  Si les accents restent illisibles : `chcp 65001`.
+- Les tests sont hors réseau (HTTP simulé). L'ingestion réelle exige Internet.
+- `ingest_power` est incrémental : il ne demande que les dates absentes (cache en base).
+  Options : `--force`, `--start AAAA-MM-JJ`, `--end AAAA-MM-JJ|auto` (`auto` = J-2),
+  `--csv chemin`, `--no-csv`, `--timeout`.
+- Export CSV par défaut : `backend/exports/power_<zone>.csv` (UTF-8 avec BOM, ignoré par git).
+- Les données de test ne doivent jamais dépendre du réseau.
+
+## Architecture
+
+```
+backend/
+  agrosentry/          settings (env), urls, wsgi/asgi
+  apps/data/           Zone, DailyWeather, IngestionLog ; client POWER, onset, risque,
+                       agrégations ; commandes ingest_power et creer_zone ; API
+  apps/ml/             phase 2
+  apps/rotations/      phase 3
+  apps/sms/            phase 5
+  apps/accounts/       phase 5 (coopératives, membres, consentement)
+```
+
+- La zone Bafia est créée par migration de données (`data/0002_zone_bafia`), pas codée en
+  dur dans les vues. `DEFAULT_ZONE_SLUG=bafia` dans les settings/.env.
+- Endpoints actuels : `/api/zones/`, `/api/pluie/`, `/api/pluie/tendances/`,
+  `/api/risques/`, `/api/calendrier-semis/`, `/api/point/?lat=&lon=`.
+- Écritures : authentification par jeton (`rest_framework.authtoken`), lecture publique.
+- `source` et `confiance` sont obligatoires dans toute réponse de recommandation ;
+  les valeurs simulées doivent être étiquetées « démonstration ».
+
+## Pièges vérifiés
+
+- **POWER** : `community=AG`, dates `YYYYMMDD`, sentinelle `-999` → `NULL`. 2016-01-01 →
+  J-2 = 3 969 jours, aucun `-999` sur Bafia au 15/11/2026 ; le jour J-1 peut manquer.
+- **GiBS (phase 4)** : l'archive `MODIS_Terra_NDVI_8Day` commence le **2025-02-12** (un
+  tile au 2025-01-01 renvoie 404) et les dates sont discontinues. Borner le sélecteur de
+  date et prévoir un repli sur le composite précédent. `maxzoom` natif : NDVI/TrueColor 9,
+  LST 7.
+- **npm** : le registre répond à ~40 Ko/s sur cette machine. Installer les dépendances
+  front en une fois, avec des timeouts longs ; éviter les paquets inutiles.
+- **Tests** : `python manage.py test` depuis la racine découvre 0 test. Toujours `cd backend`.
+- Git ignore déjà `.env`, `db.sqlite3`, `backend/exports/`, `*.h5`, modèles `.pkl/.joblib`,
+  `node_modules/`, `dist/`.
+
+## Conventions
+
+- Interface, messages, docstrings et commentaires en **français** ; identifiants de code en
+  anglais.
+- Aucune clé ni mot de passe dans le code : `.env` (non versionné) + `.env.example` à jour.
+- Accessibilité : jamais une information par la couleur seule ; unités et dates affichées.
+- Toute recommandation porte un niveau de confiance et la mention « à valider avec un
+  agronome ».
