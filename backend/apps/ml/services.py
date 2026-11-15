@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import joblib
 import pandas as pd
@@ -30,6 +31,21 @@ VERSION_MODELE = "1.0-phase2"
 
 COLONNES = ("rain7", "rain30", "tmax7", "dry_days14", "doy")
 CHEMIN_MODELE = Path(settings.BASE_DIR) / "ml" / "risque_secheresse.joblib"
+
+# Cache mémoire du modèle entraîné (évite un joblib.load disque à chaque requête).
+_CACHE_MODELE: dict[str, tuple[float, dict[str, Any]]] = {}
+
+
+def _cle_cache(chemin: Path) -> str:
+    return str(chemin.resolve()) if chemin.exists() else str(chemin)
+
+
+def vider_cache_modele(chemin: Path | None = None) -> None:
+    """Vide le cache (utile après réentraînement ou en tests)."""
+    if chemin is None:
+        _CACHE_MODELE.clear()
+        return
+    _CACHE_MODELE.pop(_cle_cache(chemin), None)
 
 
 def construire_dataframe(
@@ -98,14 +114,35 @@ def sauvegarder(artefact: dict, chemin: Path = CHEMIN_MODELE) -> str:
     """Sauvegarde l'artefact (modèle + métadonnées) au format joblib."""
     chemin.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(artefact, chemin)
+    cle = _cle_cache(chemin)
+    try:
+        _CACHE_MODELE[cle] = (chemin.stat().st_mtime, artefact)
+    except OSError:
+        vider_cache_modele(chemin)
     return str(chemin)
 
 
 def charger(chemin: Path = CHEMIN_MODELE) -> dict | None:
-    """Charge l'artefact entraîné ; retourne None s'il n'existe pas encore."""
+    """Charge l'artefact entraîné ; retourne None s'il n'existe pas encore.
+
+    Le modèle est mis en cache mémoire et rechargé uniquement si le fichier
+    change sur disque, ce qui évite un `joblib.load` coûteux à chaque requête.
+    """
     if not chemin.exists():
+        vider_cache_modele(chemin)
         return None
-    return joblib.load(chemin)
+    try:
+        mtime = chemin.stat().st_mtime
+    except OSError:
+        vider_cache_modele(chemin)
+        return None
+    cle = _cle_cache(chemin)
+    cache = _CACHE_MODELE.get(cle)
+    if cache and cache[0] == mtime:
+        return cache[1]
+    artefact = joblib.load(chemin)
+    _CACHE_MODELE[cle] = (mtime, artefact)
+    return artefact
 
 
 def _confiance(artefact: dict) -> str:
