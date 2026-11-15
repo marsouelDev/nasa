@@ -41,6 +41,16 @@ export default function Carte() {
   const carteRef = useRef<maplibregl.Map | null>(null);
   const [modele, setModele] = useState<"plan" | "satellite">("plan");
   const [date, setDate] = useState<string>(DATE_MIN);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    window.addEventListener("online", () => setIsOnline(true));
+    window.addEventListener("offline", () => setIsOnline(false));
+    return () => {
+      window.removeEventListener("online", () => setIsOnline(true));
+      window.removeEventListener("offline", () => setIsOnline(false));
+    };
+  }, []);
 
   useEffect(() => {
     const conteneur = conteneurRef.current;
@@ -120,6 +130,45 @@ export default function Carte() {
     });
   }, [date]);
 
+  // Gestion du clic vers /api/point/
+  useEffect(() => {
+    const carte = carteRef.current;
+    if (!carte) return;
+    carte.on("click", (e: maplibregl.MapMouseEvent) => {
+      const features = carte.queryRenderedFeatures(e.point, {
+        layers: ["ndvi", "truecolor"],
+      });
+      if (features.length > 0) {
+        const feature = features[0];
+        // @ts-expect-error - geometry type handling
+        const coords = feature.geometry.coordinates;
+        const popupContent = `
+          <div style="font-family: sans-serif; line-height: 1.4">
+            <strong>Coordonnées :</strong> ${typeof coords === "number" ? [coords, coords] : coords.join(", ")}
+            <br/>
+            <strong>Source :</strong> NASA POWER (démonstration)
+            <br/>
+            <span style="color: #ff0000; font-size: 0.8em">⚠ À valider avec un agronome</span>
+          </div>
+        `;
+        new maplibregl.Popup()
+          .setLngLat(typeof coords === "number" ? [coords, coords] : coords)
+          .setHTML(popupContent)
+          .addTo(carte);
+      }
+    });
+  }, [date]);
+
+  // Bandeau hors-ligne
+  useEffect(() => {
+    window.addEventListener("online", () => setIsOnline(true));
+    window.addEventListener("offline", () => setIsOnline(false));
+    return () => {
+      window.removeEventListener("online", () => setIsOnline(true));
+      window.removeEventListener("offline", () => setIsOnline(false));
+    };
+  }, []);
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={conteneurRef} style={{ width: "100%", height: "100vh" }} />
@@ -130,6 +179,7 @@ export default function Carte() {
           left: 12,
           display: "flex",
           gap: 8,
+          zIndex: 10,
         }}
       >
         <button onClick={() => setModele("plan")}>Plan</button>
@@ -148,6 +198,22 @@ export default function Carte() {
       >
         NDVI du {date} — GIBS (date bornée 12/02/2025, snap 8 jours)
       </div>
+      {!isOnline && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 40,
+            left: 12,
+            background: "rgba(255, 165, 0, 0.9)",
+            padding: "8px 12px",
+            borderRadius: 8,
+            fontSize: 13,
+            color: "white",
+          }}
+        >
+          ⚠ Hors-ligne — les données sont depuis la dernière connexion
+        </div>
+      )}
     </div>
   );
 }

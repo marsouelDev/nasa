@@ -8,3 +8,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>,
 );
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/public/service-worker.js").then(
+    (registration) => {
+      console.log("SW registered: ", registration);
+    }
+  );
+}
