@@ -172,6 +172,18 @@ POWER_MAX_RETRIES = int(os.getenv("POWER_MAX_RETRIES", "3"))
 # POWER renvoie cette valeur sentinelle pour les jours sans donnée.
 POWER_FILL_VALUE = -999
 
+# --- Africa's Talking / SMS (phase 5) ------------------------------------
+# Par défaut, tout est simulé : aucun message n'est transmis. Pour un envoi
+# réel il faut des clés ET passer SMS_SIMULATION=False ET SMS_ENVOI_REEL=True.
+AT_USERNAME = os.getenv("AT_USERNAME", "")
+AT_API_KEY = os.getenv("AT_API_KEY", "")
+AT_SENDER_ID = os.getenv("AT_SENDER_ID", "")
+AT_API_URL = os.getenv(
+    "AT_API_URL", "https://api.africastalking.com/version1/messaging"
+)
+SMS_SIMULATION = env_bool("SMS_SIMULATION", True)
+SMS_ENVOI_REEL = env_bool("SMS_ENVOI_REEL", False)
+
 # --- Journalisation -------------------------------------------------------
 LOGGING = {
     "version": 1,
