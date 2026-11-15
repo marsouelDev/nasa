@@ -184,6 +184,15 @@ AT_API_URL = os.getenv(
 SMS_SIMULATION = env_bool("SMS_SIMULATION", True)
 SMS_ENVOI_REEL = env_bool("SMS_ENVOI_REEL", False)
 
+# --- Celery (phase 5) -----------------------------------------------------
+# Mode eager par défaut en développement : les tâches s'exécutent immédiatement
+# (envoi des alertes SMS). Pas besoin de Redis local pour la démo.
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "memory://")
+CELERY_TASK_ALWAYS_EAGER = env_bool("CELERY_TASK_ALWAYS_EAGER", True)
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache+memory://")
+
 # --- Journalisation -------------------------------------------------------
 LOGGING = {
     "version": 1,
