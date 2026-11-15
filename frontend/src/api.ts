@@ -22,13 +22,22 @@ export class ApiError extends Error {
   }
 }
 
-type OptionsRequete = { signal?: AbortSignal };
+type OptionsRequete = {
+  signal?: AbortSignal;
+  method?: string;
+  body?: unknown;
+};
 
 async function requete<T>(chemin: string, options: OptionsRequete = {}): Promise<T> {
   let reponse: Response;
   try {
     reponse = await fetch(`${BASE_API}${chemin}`, {
-      headers: { Accept: "application/json" },
+      method: options.method ?? "GET",
+      headers: {
+        Accept: "application/json",
+        ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: options.signal,
     });
   } catch (erreur) {
@@ -241,5 +250,177 @@ export interface ReponseRisques extends Risque {
 export function getRisques(zone: string, signal?: AbortSignal): Promise<ReponseRisques> {
   return requete<ReponseRisques>(`/risques/?zone=${encodeURIComponent(zone)}`, {
     signal,
+  });
+}
+
+// --- Phase 5 : comptes, SMS et USSD ---
+
+export interface AgriculteurPublic {
+  id: number;
+  telephone_masque: string;
+  nom: string;
+  zone: string;
+  zone_nom: string;
+  langue: string;
+  consentement: boolean;
+  consentement_le: string | null;
+  consentement_version: string;
+  desinscrit_le: string | null;
+  actif: boolean;
+  peut_recevoir_sms: boolean;
+  cree_le: string;
+}
+
+export interface ResumeInscriptions {
+  nombre_agriculteurs: number;
+  nombre_consentants: number;
+  texte_consentement: string;
+  version_consentement: string;
+  langues: { code: string; libelle: string }[];
+}
+
+export interface ReponseInscription {
+  cree: boolean;
+  consentement_enregistre: boolean;
+  version_consentement: string;
+  agriculteur: AgriculteurPublic;
+  message: string;
+}
+
+export interface ReponseStatutInscription {
+  connu: boolean;
+  agriculteur?: AgriculteurPublic;
+  telephone_masque?: string;
+  message?: string;
+}
+
+export interface ReponseDesinscription {
+  connu: boolean;
+  desinscrit: boolean;
+  deja_desinscrit?: boolean;
+  telephone_masque?: string;
+  desinscrit_le?: string | null;
+  consentement?: boolean;
+  message: string;
+}
+
+export interface EnvoiJournal {
+  id: number;
+  telephone_masque: string;
+  message: string;
+  longueur: number;
+  statut: string;
+  mode: string;
+  categorie: string;
+  reference: string;
+  cree_le: string;
+}
+
+export interface JournalSMS {
+  simulation: boolean;
+  longueur_max: number;
+  source: string;
+  genere_le: string;
+  envois: EnvoiJournal[];
+}
+
+export interface ApercuSMS {
+  zone: { slug: string; nom: string };
+  langue: string;
+  disponible: boolean;
+  risque: { niveau: string | null; score?: number; confiance?: string; source?: string };
+  message: string;
+  longueur: number;
+  longueur_max: number;
+  source_sms: string;
+  simulation: boolean;
+  a_valider_par_agronome: boolean;
+}
+
+export interface ReponseSimulationSMS {
+  envoye: boolean;
+  simulation: boolean;
+  longueur_max: number;
+  sms: {
+    id: number;
+    telephone_masque: string;
+    message: string;
+    longueur: number;
+    statut: string;
+    mode: string;
+    categorie: string;
+    cree_le: string;
+  };
+  message_utilisateur: string;
+}
+
+export interface ResultatAlertes {
+  task_id: string;
+  simulation: boolean;
+  zone: string | null;
+  resultat: { zones: unknown[]; alertes: number; envoies_crees: number; ignores: unknown[] };
+}
+
+export interface ReponseUssd {
+  reponse: string;
+  longueur: number;
+  longueur_max: number;
+  simulation: boolean;
+  zone: { slug: string; nom: string };
+  source: string;
+}
+
+export function getInscriptions(): Promise<ResumeInscriptions> {
+  return requete<ResumeInscriptions>("/inscriptions/");
+}
+
+export function getStatutInscription(telephone: string): Promise<ReponseStatutInscription> {
+  return requete<ReponseStatutInscription>(
+    `/inscriptions/statut/?telephone=${encodeURIComponent(telephone)}`,
+  );
+}
+
+export function postInscription(data: {
+  telephone: string;
+  zone?: string;
+  langue?: string;
+  nom?: string;
+  consentement: boolean;
+}): Promise<ReponseInscription> {
+  return requete<ReponseInscription>("/inscriptions/", { method: "POST", body: data });
+}
+
+export function postDesinscription(telephone: string): Promise<ReponseDesinscription> {
+  return requete<ReponseDesinscription>("/desinscription/", {
+    method: "POST",
+    body: { telephone },
+  });
+}
+
+export function getApercuSMS(zone = "bafia", langue = "fr"): Promise<ApercuSMS> {
+  return requete<ApercuSMS>(
+    `/sms/apercu/?zone=${encodeURIComponent(zone)}&langue=${encodeURIComponent(langue)}`,
+  );
+}
+
+export function postSimulerSMS(telephone: string, message?: string): Promise<ReponseSimulationSMS> {
+  const body: { telephone: string; message?: string } = { telephone };
+  if (message && message.trim()) body.message = message;
+  return requete<ReponseSimulationSMS>("/sms/simuler/", { method: "POST", body });
+}
+
+export function getJournalSMS(limite = 20): Promise<JournalSMS> {
+  return requete<JournalSMS>(`/sms/journal/?limite=${limite}`);
+}
+
+export function postAlertes(zone?: string): Promise<ResultatAlertes> {
+  const suffixe = zone ? `?zone=${encodeURIComponent(zone)}` : "";
+  return requete<ResultatAlertes>(`/sms/alertes/${suffixe}`, { method: "POST", body: {} });
+}
+
+export function postSimulerUssd(text: string, zone = "bafia"): Promise<ReponseUssd> {
+  return requete<ReponseUssd>(`/sms/ussd/simuler/?zone=${encodeURIComponent(zone)}`, {
+    method: "POST",
+    body: { text },
   });
 }

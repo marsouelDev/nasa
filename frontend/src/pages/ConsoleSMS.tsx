@@ -1,30 +1,36 @@
 /**
- * Page « SMS / USSD » : simulateur local.
+ * Page « SMS / USSD » : console de démonstration branchée sur l'API phase 5.
  *
- * Aucun message n'est réellement envoyé (pas de passerelle SMS branchée avant
- * la phase 5) : tout est étiqueté « démonstration ». La longueur du message est
- * contrôlée à 160 caractères, comme un SMS simple.
+ * Aucun message réel n'est envoyé : la passerelle est simulée côté backend
+ * tant que les clés ne sont pas configurées. Les SMS ne sont préparés que
+ * pour les agriculteurs ayant donné un consentement explicite (STOP pour se
+ * désinscrire).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  ApiError,
   estAnnulation,
-  getRisques,
+  getApercuSMS,
+  getInscriptions,
+  getJournalSMS,
   messageErreur,
+  postAlertes,
+  postDesinscription,
+  postInscription,
+  postSimulerSMS,
+  postSimulerUssd,
   urlApi,
+  type JournalSMS,
+  type ReponseUssd,
+  type ResumeInscriptions,
 } from "../api";
 
 const ZONE = "bafia";
 const LONGUEUR_MAX = 160;
 const ENTETE = "AgroSentry : ";
 
-interface SmsEnvoye {
-  id: number;
-  numero: string;
-  texte: string;
-  longueur: number;
-  heure: string;
-}
+type Notice = { type: "ok" | "erreur" | "info"; texte: string } | null;
 
 function maintenant(): string {
   return new Date().toLocaleString("fr-FR", {
@@ -34,116 +40,237 @@ function maintenant(): string {
 }
 
 export default function ConsoleSMS() {
-  const [numero, setNumero] = useState("+237600000000");
+  // Inscription
+  const [telephone, setTelephone] = useState("+237600000000");
+  const [nom, setNom] = useState("");
+  const [langue, setLangue] = useState<"fr" | "en">("fr");
+  const [consentement, setConsentement] = useState(false);
+  const [resume, setResume] = useState<ResumeInscriptions | null>(null);
+  const [noticeCompte, setNoticeCompte] = useState<Notice>(null);
+
+  // SMS
   const [message, setMessage] = useState("");
   const [avecEntete, setAvecEntete] = useState(true);
-  const [journal, setJournal] = useState<SmsEnvoye[]>([]);
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [codeUssd, setCodeUssd] = useState("*384*1#");
-  const [sessionUssd, setSessionUssd] = useState<string | null>(null);
-  const compteur = useRef(0);
-  const requete = useRef<AbortController | null>(null);
+  const [noticeSms, setNoticeSms] = useState<Notice>(null);
+  const [journal, setJournal] = useState<JournalSMS | null>(null);
+  const [chargementJournal, setChargementJournal] = useState(false);
 
-  useEffect(() => {
-    return () => requete.current?.abort();
-  }, []);
+  // USSD
+  const [saisieUssd, setSaisieUssd] = useState("");
+  const [reponseUssd, setReponseUssd] = useState<ReponseUssd | null>(null);
+  const [noticeUssd, setNoticeUssd] = useState<Notice>(null);
 
   const texteComplet = avecEntete ? `${ENTETE}${message}` : message;
   const longueur = texteComplet.length;
   const tropLong = longueur > LONGUEUR_MAX;
-  const numeroValide = /^\+?[0-9 ]{8,17}$/.test(numero.trim());
 
-  const preRemplirDepuisRisque = () => {
-    requete.current?.abort();
-    const controleur = new AbortController();
-    requete.current = controleur;
-    setErreur(null);
-    getRisques(ZONE, controleur.signal)
-      .then((risque) => {
-        if (!risque.disponible) {
-          setErreur(risque.message ?? "Risque indisponible pour cette zone.");
-          return;
-        }
-        const score =
-          typeof risque.score === "number"
-            ? `${Math.round(risque.score * 100)} %`
-            : "non calculé";
-        const proposition =
-          `Risque de sécheresse ${risque.niveau ?? "inconnu"} (${score}). ` +
-          `Confiance ${risque.confiance}. À valider avec un agronome.`;
-        setMessage(proposition.slice(0, LONGUEUR_MAX - ENTETE.length));
-      })
-      .catch((probleme: unknown) => {
-        if (estAnnulation(probleme)) return;
-        setErreur(messageErreur(probleme));
+  const chargerResume = useCallback(async () => {
+    try {
+      setResume(await getInscriptions());
+    } catch {
+      // optionnel en démo
+    }
+  }, []);
+
+  const chargerJournal = useCallback(async () => {
+    setChargementJournal(true);
+    try {
+      setJournal(await getJournalSMS(20));
+    } catch (erreur) {
+      if (!estAnnulation(erreur)) {
+        setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
+      }
+    } finally {
+      setChargementJournal(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void chargerResume();
+    void chargerJournal();
+  }, [chargerResume, chargerJournal]);
+
+  const inscrire = async () => {
+    setNoticeCompte(null);
+    try {
+      const reponse = await postInscription({
+        telephone,
+        zone: ZONE,
+        langue,
+        nom: nom || undefined,
+        consentement,
       });
+      setNoticeCompte({
+        type: "ok",
+        texte: `${reponse.message} Numéro ${reponse.agriculteur.telephone_masque}, consentement ${reponse.agriculteur.consentement_version} enregistré le ${reponse.agriculteur.consentement_le ?? ""}.`,
+      });
+      await chargerResume();
+    } catch (erreur) {
+      setNoticeCompte({ type: "erreur", texte: messageErreur(erreur) });
+    }
   };
 
-  const envoyer = () => {
-    if (!numeroValide || message.trim() === "" || tropLong) return;
-    compteur.current += 1;
-    setJournal((actuel) => [
-      {
-        id: compteur.current,
-        numero: numero.trim(),
-        texte: texteComplet,
-        longueur,
-        heure: maintenant(),
-      },
-      ...actuel,
-    ]);
-    setMessage("");
+  const desinscrire = async () => {
+    setNoticeCompte(null);
+    try {
+      const reponse = await postDesinscription(telephone);
+      setNoticeCompte({ type: reponse.desinscrit ? "ok" : "info", texte: reponse.message });
+      await chargerResume();
+    } catch (erreur) {
+      setNoticeCompte({ type: "erreur", texte: messageErreur(erreur) });
+    }
   };
 
-  const composerUssd = () => {
-    setSessionUssd(
-      [
-        "AgroSentry (simulation USSD)",
-        `Code composé : ${codeUssd}`,
-        "1. Risque de sécheresse",
-        "2. Fenêtre de semis",
-        "3. Comparateur de rotations",
-        "Répondez par un chiffre (démonstration, aucun réseau utilisé).",
-      ].join("\n"),
-    );
+  const preRemplirDepuisApercu = async () => {
+    setNoticeSms(null);
+    try {
+      const apercu = await getApercuSMS(ZONE, langue);
+      if (!apercu.disponible) {
+        setNoticeSms({
+          type: "erreur",
+          texte: "Risque indisponible pour cette zone : message impossible à construire.",
+        });
+        return;
+      }
+      const sansEntete = apercu.message.startsWith(ENTETE)
+        ? apercu.message.slice(ENTETE.length)
+        : apercu.message;
+      setMessage(sansEntete.slice(0, LONGUEUR_MAX - (avecEntete ? ENTETE.length : 0)));
+      setNoticeSms({
+        type: "info",
+        texte: `Aperçu généré depuis l'API (${apercu.longueur}/${apercu.longueur_max} car., source ${apercu.risque.source ?? "—"}).`,
+      });
+    } catch (erreur) {
+      if (!estAnnulation(erreur)) {
+        setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
+      }
+    }
   };
+
+  const simulerEnvoi = async () => {
+    setNoticeSms(null);
+    if (tropLong) return;
+    try {
+      const reponse = await postSimulerSMS(telephone, texteComplet.trim() || undefined);
+      setNoticeSms({
+        type: "ok",
+        texte: `${reponse.message_utilisateur} (${reponse.sms.telephone_masque}, ${reponse.sms.longueur} car., statut ${reponse.sms.statut}).`,
+      });
+      setMessage("");
+      await chargerJournal();
+    } catch (erreur) {
+      if (erreur instanceof ApiError && (erreur.statut === 400 || erreur.statut === 403)) {
+        setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
+      } else if (!estAnnulation(erreur)) {
+        setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
+      }
+    }
+  };
+
+  const declencherAlertes = async () => {
+    setNoticeSms(null);
+    try {
+      const reponse = await postAlertes(ZONE);
+      setNoticeSms({
+        type: "ok",
+        texte: `Tâche ${reponse.task_id} exécutée (eager). Alertes préparées : ${reponse.resultat.alertes}, envois créés : ${reponse.resultat.envoies_crees}.`,
+      });
+      await chargerJournal();
+    } catch (erreur) {
+      setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
+    }
+  };
+
+  const simulerUssd = async (text?: string) => {
+    setNoticeUssd(null);
+    try {
+      const reponse = await postSimulerUssd(text ?? saisieUssd, ZONE);
+      setReponseUssd(reponse);
+    } catch (erreur) {
+      if (!estAnnulation(erreur)) {
+        setNoticeUssd({ type: "erreur", texte: messageErreur(erreur) });
+      }
+    }
+  };
+
+  const noticeBloc = (notice: Notice) =>
+    notice ? (
+      <p className={notice.type === "erreur" ? "page-erreur" : "page-note"} role={notice.type === "erreur" ? "alert" : "status"}>
+        {notice.texte}
+      </p>
+    ) : null;
 
   return (
     <div className="page">
-      <h2>Simulateur SMS / USSD</h2>
+      <h2>Console SMS / USSD (simulation phase 5)</h2>
       <p className="page-note">
-        Démonstration : aucun SMS n'est envoyé, aucun réseau mobile n'est
-        contacté. API {urlApi()}.
+        Démonstration : aucun SMS réel n'est envoyé et aucun réseau mobile n'est
+        contacté. Les SMS ne sont préparés que pour les numéros avec consentement
+        explicite enregistré. API {urlApi()}.
       </p>
 
-      <section className="bloc-reglages" aria-label="Envoi de SMS simulé">
+      <section className="bloc-reglages" aria-label="Inscription et consentement">
+        <h3>Inscription et consentement</h3>
+        <p className="page-note">
+          {resume
+            ? `${resume.nombre_agriculteurs} agriculteur(s), ${resume.nombre_consentants} consentant(s). Version du consentement : ${resume.version_consentement}.`
+            : "Chargement du résumé…"}
+        </p>
+        {resume && <p className="page-note">Texte : {resume.texte_consentement}</p>}
+
         <label className="champ">
           Numéro de téléphone
           <input
             type="tel"
-            value={numero}
-            onChange={(evenement) => setNumero(evenement.target.value)}
+            value={telephone}
+            onChange={(e) => setTelephone(e.target.value)}
             placeholder="+2376XXXXXXXX"
-            aria-invalid={!numeroValide}
           />
         </label>
-        {!numeroValide && (
-          <p className="page-erreur" role="alert">
-            Numéro invalide : 8 à 17 chiffres, éventuellement précédés de « + ».
-          </p>
-        )}
+        <label className="champ">
+          Nom (optionnel)
+          <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} />
+        </label>
+        <label className="champ">
+          Langue
+          <select value={langue} onChange={(e) => setLangue(e.target.value as "fr" | "en")}>
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label className="case">
+          <input
+            type="checkbox"
+            checked={consentement}
+            onChange={(e) => setConsentement(e.target.checked)}
+          />
+          Je donne mon consentement explicite pour recevoir des SMS d'alerte AgroSentry
+          sur ce numéro (date et version enregistrées). Je peux répondre STOP pour me
+          désinscrire.
+        </label>
+        <div className="barre-boutons">
+          <button type="button" className="bouton-principal" onClick={() => void inscrire()}>
+            Inscrire / mettre à jour
+          </button>
+          <button type="button" onClick={() => void desinscrire()}>
+            Se désinscrire (STOP)
+          </button>
+        </div>
+        {noticeBloc(noticeCompte)}
+      </section>
 
+      <section className="bloc-reglages" aria-label="Envoi de SMS simulé">
+        <h3>SMS simulé (≤ {LONGUEUR_MAX} caractères)</h3>
         <label className="champ">
           Message
           <textarea
             rows={4}
             value={message}
-            onChange={(evenement) => setMessage(evenement.target.value)}
-            placeholder="Ex. : Risque de sécheresse élevé, retarder le semis de 7 jours."
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Laissez vide pour générer le message de risque depuis l'API."
             aria-describedby="compteur-sms"
           />
         </label>
-
         <p
           id="compteur-sms"
           className={tropLong ? "page-erreur" : "page-note"}
@@ -152,71 +279,91 @@ export default function ConsoleSMS() {
           {longueur} / {LONGUEUR_MAX} caractères
           {tropLong ? " — message trop long pour un SMS simple." : ""}
         </p>
-
         <label className="case">
           <input
             type="checkbox"
             checked={avecEntete}
-            onChange={(evenement) => setAvecEntete(evenement.target.checked)}
+            onChange={(e) => setAvecEntete(e.target.checked)}
           />
           Ajouter l'en-tête « {ENTETE.trim()} »
         </label>
-
         <div className="barre-boutons">
-          <button type="button" onClick={preRemplirDepuisRisque}>
-            Pré-remplir depuis /api/risques/
+          <button type="button" onClick={() => void preRemplirDepuisApercu()}>
+            Pré-remplir depuis /api/sms/apercu/
           </button>
           <button
             type="button"
             className="bouton-principal"
-            onClick={envoyer}
-            disabled={!numeroValide || message.trim() === "" || tropLong}
+            onClick={() => void simulerEnvoi()}
+            disabled={tropLong}
           >
-            Envoyer (simulation)
+            Simuler l'envoi (API)
+          </button>
+          <button type="button" onClick={() => void declencherAlertes()}>
+            Déclencher alertes de risque (Celery eager)
+          </button>
+          <button type="button" onClick={() => void chargerJournal()} disabled={chargementJournal}>
+            Rafraîchir le journal
           </button>
         </div>
-
-        {erreur && (
-          <p className="page-erreur" role="alert">
-            {erreur}
-          </p>
-        )}
+        {noticeBloc(noticeSms)}
       </section>
 
       <section className="bloc-reglages" aria-label="USSD simulé">
-        <h3>USSD (simulation)</h3>
+        <h3>USSD simulé (≤ 182 caractères)</h3>
+        <p className="page-note">
+          Menu court : 1 risque, 2 pluie 30j, 3 calendrier de semis, 4 quitter.
+          Réponses CON/END comme Africa's Talking, aucun réseau mobile.
+        </p>
+        <div className="barre-boutons">
+          <button type="button" onClick={() => void simulerUssd("")}>Afficher le menu</button>
+          <button type="button" onClick={() => void simulerUssd("1")}>1 Risque</button>
+          <button type="button" onClick={() => void simulerUssd("2")}>2 Pluie</button>
+          <button type="button" onClick={() => void simulerUssd("3")}>3 Semis</button>
+          <button type="button" onClick={() => void simulerUssd("4")}>4 Quitter</button>
+        </div>
         <label className="champ">
-          Code USSD
+          Saisie libre
           <input
             type="text"
-            value={codeUssd}
-            onChange={(evenement) => setCodeUssd(evenement.target.value)}
+            value={saisieUssd}
+            onChange={(e) => setSaisieUssd(e.target.value)}
+            placeholder="ex. 1, *384*2#"
           />
         </label>
-        <button type="button" onClick={composerUssd}>
-          Composer le code
-        </button>
-        {sessionUssd && (
+        <button type="button" onClick={() => void simulerUssd()}>Envoyer la saisie</button>
+        {noticeBloc(noticeUssd)}
+        {reponseUssd && (
           <pre className="ecran-ussd" aria-live="polite">
-            {sessionUssd}
+            {reponseUssd.reponse}
+            {"\n"}
+            — {reponseUssd.longueur}/{reponseUssd.longueur_max} car., {reponseUssd.source}, zone{" "}
+            {reponseUssd.zone.nom}
           </pre>
         )}
       </section>
 
-      <section aria-label="Journal des envois simulés">
-        <h3>Journal des envois simulés ({journal.length})</h3>
-        {journal.length === 0 ? (
-          <p className="page-note">Aucun message simulé pour le moment.</p>
+      <section aria-label="Journal des SMS">
+        <h3>Journal des SMS ({journal?.envois.length ?? 0})</h3>
+        <p className="page-note">
+          {journal
+            ? `Source ${journal.source}. Simulation ${journal.simulation ? "active" : "inactive"} (aucun envoi réel sans configuration explicite).`
+            : "Journal non chargé."}
+        </p>
+        {!journal || journal.envois.length === 0 ? (
+          <p className="page-note">Aucun envoi enregistré pour le moment.</p>
         ) : (
           <ul className="journal-sms">
-            {journal.map((entree) => (
+            {journal.envois.map((entree) => (
               <li key={entree.id}>
                 <p className="journal-entete">
-                  {entree.heure} · {entree.numero} · {entree.longueur} caractères
+                  {entree.cree_le ? new Date(entree.cree_le).toLocaleString("fr-FR") : maintenant()} ·{" "}
+                  {entree.telephone_masque} · {entree.longueur} caractères · {entree.statut} ·{" "}
+                  {entree.categorie}
                 </p>
-                <p>{entree.texte}</p>
+                <p>{entree.message}</p>
                 <p className="journal-demo">
-                  Démonstration — message non transmis.
+                  Mode {entree.mode} — {entree.statut === "simule" ? "message non transmis." : entree.statut}.
                 </p>
               </li>
             ))}
