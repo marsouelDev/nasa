@@ -1,7 +1,651 @@
+/* Styles globaux AgroSentry — sobres, lisibles, sans dépendance externe. */
+
+:root {
+  color-scheme: light;
+  --vert-fonce: #0f2e1d;
+  --vert: #1b5e20;
+  --vert-clair: #e8f2e9;
+  --gris-texte: #3c4043;
+  --bordure: #d7dbd8;
+  --fond: #f6f7f5;
+  --alerte: #8a3b00;
+  --erreur: #a4161a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body,
 #root {
+  height: 100%;
   margin: 0;
   padding: 0;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: var(--gris-texte);
+  background: var(--fond);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  color: #17251b;
+}
+
+/* ------------------------------------------------------------- coquille app */
+
+.app {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+}
+
+.app-entete {
+  flex: 0 0 56px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 16px;
+  background: var(--vert-fonce);
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  z-index: 30;
+}
+
+.app-marque {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 1.05rem;
+}
+
+.app-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.app-nav a {
+  color: #d9e6dc;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+}
+
+.app-nav a:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.app-nav a.actif {
+  background: var(--vert-clair);
+  color: var(--vert-fonce);
+  font-weight: 600;
+}
+
+.app-contenu {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* --------------------------------------------------------------------- carte */
+
+.carte-conteneur {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.carte-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.carte-panneau {
+  position: absolute;
+  top: 12px;
+  width: 268px;
+  max-height: calc(100% - 90px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  font-size: 0.85rem;
+  z-index: 5;
+}
+
+.carte-panneau-gauche {
+  left: 12px;
+}
+
+.carte-panneau-droit {
+  right: 12px;
+  width: 300px;
+}
+
+.carte-titre {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.carte-sous-titre {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4b5a4f;
+}
+
+.carte-boutons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.carte-boutons button,
+.carte-bouton-large,
+.page button {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--bordure);
+  background: #fff;
+  color: var(--gris-texte);
+  cursor: pointer;
+}
+
+.carte-boutons button:hover,
+.carte-bouton-large:hover,
+.page button:hover {
+  border-color: var(--vert);
+  color: var(--vert);
+}
+
+.carte-boutons button.actif {
+  background: var(--vert);
+  border-color: var(--vert);
+  color: #fff;
+  font-weight: 600;
+}
+
+.carte-bouton-large {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.carte-champ {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 0;
+  font-weight: 600;
+  color: #2f3b32;
+}
+
+.carte-champ input[type="date"],
+.carte-month {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+}
+
+.carte-champ-opacite {
+  font-weight: 400;
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+.carte-champ input[type="range"] {
+  width: 100%;
+}
+
+.carte-aide {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #5a665c;
+}
+
+.carte-couche {
+  padding: 8px 0;
+  border-top: 1px solid var(--bordure);
+}
+
+.carte-couche:first-of-type {
+  border-top: none;
+}
+
+.carte-case {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.carte-legende-date {
+  margin: 6px 0 4px;
+  font-size: 0.75rem;
+  color: #5a665c;
+}
+
+.carte-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.carte-legende-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: #3c4043;
+}
+
+.carte-legende-puce {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: inline-block;
+}
+
+.carte-source {
+  margin: 8px 0 2px;
+  font-size: 0.72rem;
+  color: #5a665c;
+}
+
+.carte-demo {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--alerte);
+}
+
+.carte-alerte {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  max-width: min(620px, calc(100% - 40px));
+  z-index: 6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.carte-alerte-repli {
+  bottom: 52px;
+  background: #fff4d6;
+  border: 1px solid #d9a400;
+  color: #5c4300;
+}
+
+.carte-alerte-erreur {
+  top: 12px;
+  background: #fdeaea;
+  border: 1px solid var(--erreur);
+  color: var(--erreur);
+}
+
+.carte-alerte-hors-ligne {
+  top: 12px;
+  background: #fff1e0;
+  border: 1px solid var(--alerte);
+  color: var(--alerte);
+}
+
+/* -------------------------------------------------------------------- popup */
+
+.popup-carte .maplibregl-popup-content {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  max-height: 55vh;
+  overflow: auto;
+}
+
+.popup-agrosentry h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.popup-agrosentry p {
+  margin: 4px 0;
+}
+
+.popup-coords {
+  font-size: 0.75rem;
+  color: #5a665c;
+}
+
+.popup-liste {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.popup-risque {
+  margin-top: 8px;
+}
+
+.popup-explication {
+  font-size: 0.76rem;
+  color: #4a564c;
+}
+
+.popup-source {
+  font-size: 0.72rem;
+  color: #5a665c;
+}
+
+.popup-demo {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--alerte);
+}
+
+.popup-agronome {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--erreur);
+}
+
+/* -------------------------------------------------------------------- pages */
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.page h2 {
+  margin-top: 0;
+}
+
+.page-note {
+  margin: 4px 0 12px;
+  font-size: 0.82rem;
+  color: #5a665c;
+}
+
+.page-source {
+  font-size: 0.82rem;
+  color: #3c4043;
+  background: #eef3ee;
+  border-left: 3px solid var(--vert);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.page-erreur {
+  color: var(--erreur);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.page-avertissement {
+  margin-top: 18px;
+  font-size: 0.8rem;
+  color: var(--alerte);
+  font-weight: 600;
+}
+
+.graphique {
+  position: relative;
+  height: 320px;
+  margin: 18px 0;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+}
+
+.bloc-reglages {
+  margin: 16px 0;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+}
+
+.bloc-reglages h3 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.curseur {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0;
+  font-size: 0.85rem;
+}
+
+.curseur input[type="range"] {
+  width: 100%;
+}
+
+.case {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  font-size: 0.87rem;
+  cursor: pointer;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+
+.champ input,
+.champ textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 8px 10px;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.champ textarea {
+  resize: vertical;
+}
+
+.barre-boutons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.page button.bouton-principal {
+  background: var(--vert);
+  border-color: var(--vert);
+  color: #fff;
+  font-weight: 600;
+}
+
+.page button.bouton-principal:disabled {
+  background: #b9c3bb;
+  border-color: #b9c3bb;
+  cursor: not-allowed;
+}
+
+.grille-scenarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.carte-scenario {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+}
+
+.carte-scenario h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.carte-scenario .score {
+  margin: 4px 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--vert);
+}
+
+.carte-scenario .score span {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #5a665c;
+}
+
+.etiquette-meilleur {
+  align-self: flex-start;
+  margin: 4px 0 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--vert-clair);
+  color: var(--vert-fonce);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.carte-scenario details {
+  margin-top: 6px;
+}
+
+.carte-scenario summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.carte-scenario ul {
+  margin: 6px 0;
+  padding-left: 18px;
+  font-size: 0.82rem;
+}
+
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+.tableau caption {
+  text-align: left;
+  font-size: 0.75rem;
+  color: #5a665c;
+  padding-bottom: 4px;
+}
+
+.tableau th,
+.tableau td {
+  border-bottom: 1px solid var(--bordure);
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.ecran-ussd {
+  margin-top: 12px;
+  padding: 12px;
+  background: #10261a;
+  color: #d7f5dd;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.journal-sms {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-sms li {
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+}
+
+.journal-entete {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  color: #5a665c;
+}
+
+.journal-sms p {
+  margin: 2px 0;
+  word-break: break-word;
+}
+
+.journal-demo {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--alerte);
+}
+
+/* -------------------------------------------------------------- responsive */
+
+@media (max-width: 820px) {
+  .carte-panneau {
+    width: 210px;
+    max-height: calc(100% - 110px);
+  }
+
+  .carte-panneau-droit {
+    width: 230px;
+    top: auto;
+    bottom: 56px;
+    max-height: 45%;
+  }
+
+  .graphique {
+    height: 260px;
+  }
 }

@@ -1,26 +1,26 @@
 {
-  "short_name": "AgroSentry",
   "name": "AgroSentry — aide à la décision agro-climatique",
+  "short_name": "AgroSentry",
+  "description": "Aide à la décision agro-climatique pour Bafia (Cameroun) à partir des données NASA POWER.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f7f5",
+  "theme_color": "#0f2e1d",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/logo192.png",
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "display_status": "minimal-ui",
-  "background_color": "#ffffff",
-  "theme_color": "#007acc"
+  ]
 }
