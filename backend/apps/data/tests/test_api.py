@@ -142,8 +142,7 @@ class ApiTests(TestCase):
         self.assertLess(donnees["distance_km"], 5)
         self.assertIn("NASA POWER", donnees["source"])
         self.assertTrue(donnees["meteo"]["disponible"])
-        self.assertIsNone(donnees["rotation"])
-        self.assertIn("phase 3", donnees["rotation_note"])
+        self.assertIn("scenarios", donnees["rotation"])
 
     def test_point_parametres_invalides(self):
         self.assertEqual(self.client.get("/api/point/").status_code, 400)

@@ -18,6 +18,7 @@ from .services import analytics, risk, season
 from .utils import parse_date_param, parse_float_param, parse_int_param
 
 from apps.ml import services as ml_services
+from apps.rotations import services as rotations_services
 
 SOURCE_NASA = "NASA POWER (données réelles, communauté AG)"
 DUREE_MAX_SERIE_JOURS = 4000
@@ -64,6 +65,12 @@ def evaluer_risque(zone: Zone) -> dict:
     )
     lignes_recentes.reverse()
     return risk.assess(lignes_recentes)
+
+
+def evaluer_rotation(zone: Zone) -> dict:
+    """Comparaison des scénarios de rotation S0/S1/S2 (phase 3)."""
+    fixtures = rotations_services.charger_fixtures()
+    return rotations_services.construire_reponse(fixtures=fixtures, zone=ZoneSerializer(zone).data)
 
 
 class ApiIndexView(APIView):
@@ -324,8 +331,9 @@ class PointView(APIView):
                     "fenetre_recommandee": season.fenetre_pour_annee(stats, annee),
                     "confiance": stats.get("confiance", "faible"),
                 },
-                "rotation": None,
-                "rotation_note": "Le comparateur de rotations sera branché en phase 3.",
+                "rotation": evaluer_rotation(zone),
+                "rotation_note": "Comparateur de rotations disponible sur /api/rotations/.",
+                "rotation_source": "fixtures de démonstration — à valider avec un agronome.",
                 "avertissement": (
                     "Valeurs issues de la maille POWER la plus proche, pas d'une parcelle. "
                     "À valider avec un agronome."

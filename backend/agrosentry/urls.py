@@ -11,6 +11,7 @@ admin.site.index_title = "Gestion des zones, données et campagnes"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("apps.data.urls")),
+    path("api/rotations/", include("apps.rotations.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
 ]

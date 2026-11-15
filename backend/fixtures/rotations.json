@@ -1,0 +1,113 @@
+{
+  "version": "1.0-phase3",
+  "hypotheses_a_valider": true,
+  "source": "Fixtures de démonstration AgroSentry — notes indicatives par culture, à valider avec un agronome et les coopératives locales.",
+  "priorites_par_defaut": ["eau", "sol", "revenu", "travail"],
+  "pondérations": {
+    "eau": 0.30,
+    "sol": 0.20,
+    "revenu": 0.20,
+    "travail": 0.20
+  },
+  "scénarios": [
+    {
+      "id": "S0",
+      "nom": "Rotation actuelle",
+      "parcours": ["maïs"],
+      "description": "Rotation de référence : la culture de base reste le maïs, sans changement de rotation.",
+      "notes": [
+        {
+          "culture": "maïs",
+          "economie_eau": 5,
+          "protection_erosion": 6,
+          "matiere_organique": 3,
+          "azote": 2,
+          "rupture_ravageurs": 4,
+          "revenu": 6,
+          "facilite_travail": 7,
+          "source": "fixture phase 3"
+        }
+      ]
+    },
+    {
+      "id": "S1",
+      "nom": "Maïs puis légumineuse",
+      "parcours": ["maïs", "arachide"],
+      "description": "Rotation S1 : le maïs est suivi d'une légumineuse (arachide), culture de rente et fixatrice d'azote.",
+      "notes": [
+        {
+          "culture": "maïs",
+          "economie_eau": 5,
+          "protection_erosion": 6,
+          "matiere_organique": 3,
+          "azote": 2,
+          "rupture_ravageurs": 4,
+          "revenu": 6,
+          "facilite_travail": 7,
+          "source": "fixture phase 3"
+        },
+        {
+          "culture": "arachide",
+          "economie_eau": 6,
+          "protection_erosion": 7,
+          "matiere_organique": 6,
+          "azote": 7,
+          "rupture_ravageurs": 6,
+          "revenu": 7,
+          "facilite_travail": 6,
+          "source": "fixture phase 3"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "nom": "Maïs puis culture de couverture",
+      "parcours": ["maïs", "mucuna"],
+      "description": "Rotation S2 : le maïs est suivi d'une culture de couverture (mucuna), protection des sols et matière organique.",
+      "notes": [
+        {
+          "culture": "maïs",
+          "economie_eau": 5,
+          "protection_erosion": 6,
+          "matiere_organique": 3,
+          "azote": 2,
+          "rupture_ravageurs": 4,
+          "revenu": 6,
+          "facilite_travail": 7,
+          "source": "fixture phase 3"
+        },
+        {
+          "culture": "mucuna",
+          "economie_eau": 6,
+          "protection_erosion": 8,
+          "matiere_organique": 7,
+          "azote": 5,
+          "rupture_ravageurs": 3,
+          "revenu": 5,
+          "facilite_travail": 6,
+          "source": "fixture phase 3"
+        }
+      ]
+    }
+  ],
+  "scénarios_climatiques": [
+    {
+      "id": "pluie_observee",
+      "nom": "Pluie observée",
+      "pluie_facteur": 0.0,
+      "description": "Scénario de base : prises de décision sous les pluies observées."
+    },
+    {
+      "id": "pluie_plus_seche",
+      "nom": "Pluie − 30 %",
+      "pluie_facteur": -0.3,
+      "description": "Hypothèse : réduction de 30 % des pluies dans la saison de semis."
+    },
+    {
+      "id": "pluie_plus_abondante",
+      "nom": "Pluie + 30 %",
+      "pluie_facteur": 0.3,
+      "description": "Hypothèse : augmentation de 30 % des pluies dans la saison de semis."
+    }
+  ]
+}
