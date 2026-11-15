@@ -1,7 +1,5 @@
 # AgroSentry — dépendances Python (backend)
 # Installation : .\.venv\Scripts\pip install -r requirements.txt
-# Les dépendances de la phase 2 (pandas, scikit-learn, joblib) et de la phase 5
-# (celery, redis) seront ajoutées dans leurs phases respectives.
 
 Django==5.2.19
 djangorestframework==3.18.3
@@ -10,3 +8,7 @@ drf-spectacular==0.30.0
 python-dotenv==1.2.2
 requests==2.34.2
 whitenoise==6.12.0
+pandas==3.1.1
+numpy==2.5.4
+scikit-learn==1.9.1
+joblib==1.6.0

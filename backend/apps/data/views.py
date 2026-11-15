@@ -17,6 +17,8 @@ from .serializers import ZoneSerializer
 from .services import analytics, risk, season
 from .utils import parse_date_param, parse_float_param, parse_int_param
 
+from apps.ml import services as ml_services
+
 SOURCE_NASA = "NASA POWER (données réelles, communauté AG)"
 DUREE_MAX_SERIE_JOURS = 4000
 
@@ -42,6 +44,26 @@ def saison(zone: Zone) -> tuple[dict[int, date], dict]:
     serie = zone.weather.order_by("date").values_list("date", "precip_mm")
     onsets = season.onset_dates(serie)
     return onsets, season.onset_statistics(onsets)
+
+
+def evaluer_risque(zone: Zone) -> dict:
+    """Risque de poche de sécheresse : Random Forest si entraîné, règle sinon.
+
+    La phase 2 remplace la règle par le modèle ; tant que le modèle n'existe
+    pas, on retombe sur la règle simple et on l'étiquette comme phase 1.
+    """
+    serie = list(
+        zone.weather.order_by("date").values_list("date", "precip_mm", "tmax_c", "tmin_c")
+    )
+    artefact = ml_services.charger()
+    if serie and artefact is not None:
+        return ml_services.predire(artefact, serie)
+
+    lignes_recentes = list(
+        zone.weather.order_by("-date")[: risk.FENETRE_ANALYSE_JOURS].values_list("date", "precip_mm")
+    )
+    lignes_recentes.reverse()
+    return risk.assess(lignes_recentes)
 
 
 class ApiIndexView(APIView):
@@ -181,7 +203,7 @@ class TendancesView(APIView):
 
 
 class RisquesView(APIView):
-    """Risque de poche de sécheresse (règle simple en phase 1)."""
+    """Risque de poche de sécheresse (Random Forest en phase 2, règle en phase 1)."""
 
     @extend_schema(
         parameters=[
@@ -193,11 +215,7 @@ class RisquesView(APIView):
     def get(self, request):
         zone = zone_demandee(request)
         culture = (request.query_params.get("culture") or "maïs")[:50]
-        lignes = list(
-            zone.weather.order_by("-date")[: risk.FENETRE_ANALYSE_JOURS].values_list("date", "precip_mm")
-        )
-        lignes.reverse()
-        resultat = risk.assess(lignes)
+        resultat = evaluer_risque(zone)
         return Response(
             {
                 "zone": ZoneSerializer(zone).data,
@@ -285,7 +303,7 @@ class PointView(APIView):
         )
         recentes.reverse()
         resume = analytics.recent_summary(recentes)
-        evaluation = risk.assess([(jour, pluie) for jour, pluie, _ in recentes])
+        evaluation = evaluer_risque(zone)
 
         _, stats = saison(zone)
         annee = (recentes[-1][0].year + 1) if recentes else date.today().year + 1
