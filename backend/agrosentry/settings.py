@@ -38,7 +38,14 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-CSRF_TRUSTED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+
+# Origines front autorisées : CORS et CSRF partagent la même variable
+# d'environnement, définie une seule fois ici.
+FRONTEND_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174",
+)
+CSRF_TRUSTED_ORIGINS = FRONTEND_ORIGINS
 
 # --- Applications ---------------------------------------------------------
 INSTALLED_APPS = [
@@ -144,9 +151,15 @@ SPECTACULAR_SETTINGS = {
 }
 
 # --- CORS (frontend React servi séparément) -------------------------------
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-)
+CORS_ALLOWED_ORIGINS = FRONTEND_ORIGINS
+if DEBUG:
+    # En développement, tout port local est accepté : Vite change de port
+    # (5174, 5175...) quand 5173 est déjà pris. En production (DEBUG=False),
+    # seule la liste explicite ci-dessus reste active.
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://localhost:\d+$",
+        r"^http://127\.0\.0\.1:\d+$",
+    ]
 CORS_ALLOW_CREDENTIALS = False
 
 # --- Internationalisation -------------------------------------------------

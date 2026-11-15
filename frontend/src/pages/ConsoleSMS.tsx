@@ -20,7 +20,6 @@ import {
   postInscription,
   postSimulerSMS,
   postSimulerUssd,
-  urlApi,
   type JournalSMS,
   type ReponseUssd,
   type ResumeInscriptions,
@@ -114,7 +113,10 @@ export default function ConsoleSMS() {
     setNoticeCompte(null);
     try {
       const reponse = await postDesinscription(telephone);
-      setNoticeCompte({ type: reponse.desinscrit ? "ok" : "info", texte: reponse.message });
+      setNoticeCompte({
+        type: reponse.desinscrit ? "ok" : "info",
+        texte: reponse.message,
+      });
       await chargerResume();
     } catch (erreur) {
       setNoticeCompte({ type: "erreur", texte: messageErreur(erreur) });
@@ -128,14 +130,17 @@ export default function ConsoleSMS() {
       if (!apercu.disponible) {
         setNoticeSms({
           type: "erreur",
-          texte: "Risque indisponible pour cette zone : message impossible à construire.",
+          texte:
+            "Risque indisponible pour cette zone : message impossible à construire.",
         });
         return;
       }
       const sansEntete = apercu.message.startsWith(ENTETE)
         ? apercu.message.slice(ENTETE.length)
         : apercu.message;
-      setMessage(sansEntete.slice(0, LONGUEUR_MAX - (avecEntete ? ENTETE.length : 0)));
+      setMessage(
+        sansEntete.slice(0, LONGUEUR_MAX - (avecEntete ? ENTETE.length : 0)),
+      );
       setNoticeSms({
         type: "info",
         texte: `Aperçu généré depuis l'API (${apercu.longueur}/${apercu.longueur_max} car., source ${apercu.risque.source ?? "—"}).`,
@@ -151,7 +156,10 @@ export default function ConsoleSMS() {
     setNoticeSms(null);
     if (tropLong) return;
     try {
-      const reponse = await postSimulerSMS(telephone, texteComplet.trim() || undefined);
+      const reponse = await postSimulerSMS(
+        telephone,
+        texteComplet.trim() || undefined,
+      );
       setNoticeSms({
         type: "ok",
         texte: `${reponse.message_utilisateur} (${reponse.sms.telephone_masque}, ${reponse.sms.longueur} car., statut ${reponse.sms.statut}).`,
@@ -159,7 +167,10 @@ export default function ConsoleSMS() {
       setMessage("");
       await chargerJournal();
     } catch (erreur) {
-      if (erreur instanceof ApiError && (erreur.statut === 400 || erreur.statut === 403)) {
+      if (
+        erreur instanceof ApiError &&
+        (erreur.statut === 400 || erreur.statut === 403)
+      ) {
         setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
       } else if (!estAnnulation(erreur)) {
         setNoticeSms({ type: "erreur", texte: messageErreur(erreur) });
@@ -195,7 +206,10 @@ export default function ConsoleSMS() {
 
   const noticeBloc = (notice: Notice) =>
     notice ? (
-      <p className={notice.type === "erreur" ? "page-erreur" : "page-note"} role={notice.type === "erreur" ? "alert" : "status"}>
+      <p
+        className={notice.type === "erreur" ? "page-erreur" : "page-note"}
+        role={notice.type === "erreur" ? "alert" : "status"}
+      >
         {notice.texte}
       </p>
     ) : null;
@@ -203,20 +217,20 @@ export default function ConsoleSMS() {
   return (
     <div className="page">
       <h2>Console SMS / USSD (simulation phase 5)</h2>
-      <p className="page-note">
-        Démonstration : aucun SMS réel n'est envoyé et aucun réseau mobile n'est
-        contacté. Les SMS ne sont préparés que pour les numéros avec consentement
-        explicite enregistré. API {urlApi()}.
-      </p>
 
-      <section className="bloc-reglages" aria-label="Inscription et consentement">
+      <section
+        className="bloc-reglages"
+        aria-label="Inscription et consentement"
+      >
         <h3>Inscription et consentement</h3>
         <p className="page-note">
           {resume
             ? `${resume.nombre_agriculteurs} agriculteur(s), ${resume.nombre_consentants} consentant(s). Version du consentement : ${resume.version_consentement}.`
             : "Chargement du résumé…"}
         </p>
-        {resume && <p className="page-note">Texte : {resume.texte_consentement}</p>}
+        {resume && (
+          <p className="page-note">Texte : {resume.texte_consentement}</p>
+        )}
 
         <label className="champ">
           Numéro de téléphone
@@ -229,11 +243,18 @@ export default function ConsoleSMS() {
         </label>
         <label className="champ">
           Nom (optionnel)
-          <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} />
+          <input
+            type="text"
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+          />
         </label>
         <label className="champ">
           Langue
-          <select value={langue} onChange={(e) => setLangue(e.target.value as "fr" | "en")}>
+          <select
+            value={langue}
+            onChange={(e) => setLangue(e.target.value as "fr" | "en")}
+          >
             <option value="fr">Français</option>
             <option value="en">English</option>
           </select>
@@ -244,12 +265,16 @@ export default function ConsoleSMS() {
             checked={consentement}
             onChange={(e) => setConsentement(e.target.checked)}
           />
-          Je donne mon consentement explicite pour recevoir des SMS d'alerte AgroSentry
-          sur ce numéro (date et version enregistrées). Je peux répondre STOP pour me
-          désinscrire.
+          Je donne mon consentement explicite pour recevoir des SMS d'alerte
+          AgroSentry sur ce numéro (date et version enregistrées). Je peux
+          répondre STOP pour me désinscrire.
         </label>
         <div className="barre-boutons">
-          <button type="button" className="bouton-principal" onClick={() => void inscrire()}>
+          <button
+            type="button"
+            className="bouton-principal"
+            onClick={() => void inscrire()}
+          >
             Inscrire / mettre à jour
           </button>
           <button type="button" onClick={() => void desinscrire()}>
@@ -302,7 +327,11 @@ export default function ConsoleSMS() {
           <button type="button" onClick={() => void declencherAlertes()}>
             Déclencher alertes de risque (Celery eager)
           </button>
-          <button type="button" onClick={() => void chargerJournal()} disabled={chargementJournal}>
+          <button
+            type="button"
+            onClick={() => void chargerJournal()}
+            disabled={chargementJournal}
+          >
             Rafraîchir le journal
           </button>
         </div>
@@ -316,11 +345,21 @@ export default function ConsoleSMS() {
           Réponses CON/END comme Africa's Talking, aucun réseau mobile.
         </p>
         <div className="barre-boutons">
-          <button type="button" onClick={() => void simulerUssd("")}>Afficher le menu</button>
-          <button type="button" onClick={() => void simulerUssd("1")}>1 Risque</button>
-          <button type="button" onClick={() => void simulerUssd("2")}>2 Pluie</button>
-          <button type="button" onClick={() => void simulerUssd("3")}>3 Semis</button>
-          <button type="button" onClick={() => void simulerUssd("4")}>4 Quitter</button>
+          <button type="button" onClick={() => void simulerUssd("")}>
+            Afficher le menu
+          </button>
+          <button type="button" onClick={() => void simulerUssd("1")}>
+            1 Risque
+          </button>
+          <button type="button" onClick={() => void simulerUssd("2")}>
+            2 Pluie
+          </button>
+          <button type="button" onClick={() => void simulerUssd("3")}>
+            3 Semis
+          </button>
+          <button type="button" onClick={() => void simulerUssd("4")}>
+            4 Quitter
+          </button>
         </div>
         <label className="champ">
           Saisie libre
@@ -331,14 +370,15 @@ export default function ConsoleSMS() {
             placeholder="ex. 1, *384*2#"
           />
         </label>
-        <button type="button" onClick={() => void simulerUssd()}>Envoyer la saisie</button>
+        <button type="button" onClick={() => void simulerUssd()}>
+          Envoyer la saisie
+        </button>
         {noticeBloc(noticeUssd)}
         {reponseUssd && (
           <pre className="ecran-ussd" aria-live="polite">
             {reponseUssd.reponse}
-            {"\n"}
-            — {reponseUssd.longueur}/{reponseUssd.longueur_max} car., {reponseUssd.source}, zone{" "}
-            {reponseUssd.zone.nom}
+            {"\n"}— {reponseUssd.longueur}/{reponseUssd.longueur_max} car.,{" "}
+            {reponseUssd.source}, zone {reponseUssd.zone.nom}
           </pre>
         )}
       </section>
@@ -357,13 +397,19 @@ export default function ConsoleSMS() {
             {journal.envois.map((entree) => (
               <li key={entree.id}>
                 <p className="journal-entete">
-                  {entree.cree_le ? new Date(entree.cree_le).toLocaleString("fr-FR") : maintenant()} ·{" "}
-                  {entree.telephone_masque} · {entree.longueur} caractères · {entree.statut} ·{" "}
-                  {entree.categorie}
+                  {entree.cree_le
+                    ? new Date(entree.cree_le).toLocaleString("fr-FR")
+                    : maintenant()}{" "}
+                  · {entree.telephone_masque} · {entree.longueur} caractères ·{" "}
+                  {entree.statut} · {entree.categorie}
                 </p>
                 <p>{entree.message}</p>
                 <p className="journal-demo">
-                  Mode {entree.mode} — {entree.statut === "simule" ? "message non transmis." : entree.statut}.
+                  Mode {entree.mode} —{" "}
+                  {entree.statut === "simule"
+                    ? "message non transmis."
+                    : entree.statut}
+                  .
                 </p>
               </li>
             ))}

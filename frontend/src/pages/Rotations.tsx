@@ -8,7 +8,6 @@ import {
   estAnnulation,
   getRotations,
   messageErreur,
-  urlApi,
   type ReponseRotations,
   type ScenarioRotation,
 } from "../api";
@@ -44,7 +43,9 @@ const LIBELLES_CRITERE: Record<string, string> = {
 function libellePluie(facteur: number): string {
   if (facteur === 0) return "Pluie observée";
   const pourcentage = Math.round(facteur * 100);
-  return pourcentage > 0 ? `Pluie + ${pourcentage} %` : `Pluie ${pourcentage} %`;
+  return pourcentage > 0
+    ? `Pluie + ${pourcentage} %`
+    : `Pluie ${pourcentage} %`;
 }
 
 function CarteScenario({
@@ -63,7 +64,9 @@ function CarteScenario({
         <p className="score">
           {scenario.score.toFixed(2)} <span>/ 10</span>
         </p>
-        {meilleur && <p className="etiquette-meilleur">Meilleur score comparé</p>}
+        {meilleur && (
+          <p className="etiquette-meilleur">Meilleur score comparé</p>
+        )}
       </header>
 
       <p>{scenario.description}</p>
@@ -86,7 +89,10 @@ function CarteScenario({
         <tbody>
           {scenario.evaluations_climatiques.map((evaluation) => (
             <tr key={`${scenario.id}-${evaluation.pluie_facteur}`}>
-              <td>{evaluation.pluie_label || libellePluie(evaluation.pluie_facteur)}</td>
+              <td>
+                {evaluation.pluie_label ||
+                  libellePluie(evaluation.pluie_facteur)}
+              </td>
               <td>{evaluation.score.toFixed(2)}</td>
               <td>{evaluation.confiance}</td>
             </tr>
@@ -142,7 +148,8 @@ function CarteScenario({
 }
 
 export default function Rotations() {
-  const [poids, setPoids] = useState<Record<IdPriorite, number>>(POIDS_INITIAUX);
+  const [poids, setPoids] =
+    useState<Record<IdPriorite, number>>(POIDS_INITIAUX);
   const [pluiePersonnalisee, setPluiePersonnalisee] = useState(false);
   const [facteurPluie, setFacteurPluie] = useState(-0.3);
   const [donnees, setDonnees] = useState<ReponseRotations | null>(null);
@@ -193,10 +200,6 @@ export default function Rotations() {
   return (
     <div className="page">
       <h2>Comparateur de rotations</h2>
-      <p className="page-note">
-        Zone de {ZONE} · API {urlApi()} · les notes viennent de fixtures de
-        démonstration.
-      </p>
 
       <section className="bloc-reglages" aria-label="Pondérations">
         <h3>Priorités de l'exploitation</h3>
@@ -229,7 +232,9 @@ export default function Rotations() {
           <input
             type="checkbox"
             checked={pluiePersonnalisee}
-            onChange={(evenement) => setPluiePersonnalisee(evenement.target.checked)}
+            onChange={(evenement) =>
+              setPluiePersonnalisee(evenement.target.checked)
+            }
           />
           Simuler une pluie personnalisée
         </label>
@@ -243,7 +248,9 @@ export default function Rotations() {
               max={0.5}
               step={0.05}
               value={facteurPluie}
-              onChange={(evenement) => setFacteurPluie(Number(evenement.target.value))}
+              onChange={(evenement) =>
+                setFacteurPluie(Number(evenement.target.value))
+              }
             />
           </label>
         )}
@@ -277,10 +284,7 @@ export default function Rotations() {
         </>
       )}
 
-      <p className="page-avertissement">
-        Notes indicatives, non mesurées sur une parcelle. À valider avec un
-        agronome et les coopératives locales.
-      </p>
+   
     </div>
   );
 }

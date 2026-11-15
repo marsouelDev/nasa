@@ -23,7 +23,6 @@ import {
   estAnnulation,
   getTendances,
   messageErreur,
-  urlApi,
   type ReponseTendances,
   type Tendance,
 } from "../api";
@@ -170,13 +169,6 @@ export default function Tendances() {
   return (
     <div className="page">
       <h2>Tendances climatiques</h2>
-      <p className="page-note">
-        Zone de {ZONE} · API {urlApi()} ·{" "}
-        {donnees?.derniere_donnee
-          ? `dernière donnée au ${donnees.derniere_donnee}`
-          : "dates inconnues"}
-        .
-      </p>
 
       {chargement && <p role="status">Chargement des tendances…</p>}
 
@@ -207,10 +199,7 @@ export default function Tendances() {
         </>
       )}
 
-      <p className="page-avertissement">
-        Données de maille NASA POWER (≈ 0,5°), pas d'une parcelle. À valider avec
-        un agronome.
-      </p>
+     
     </div>
   );
 }
