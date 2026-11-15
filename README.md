@@ -154,6 +154,7 @@ Frontend : `VITE_API_URL` (voir `frontend/.env.example`).
 - [x] Le simulateur produit un SMS de 160 caractÃ¨res au plus (aperÃ§u/simulation, journal en base, consentement requis).
 - [x] USSD simulÃ© (menu risque/pluie/semis) avec rÃ©ponses â‰¤ 182 caractÃ¨res et alertes Celery eager aux consentants uniquement.
 - [x] Tests backend passants et build/lint frontend passants (voir section Tests et qualitÃ©).
+- [x] Section « Limites connues » documentée dans le README.
 - [ ] `ingest_power` exÃ©cutÃ© sur un environnement cible vierge avec preuve rÃ©seau jointe dans ce dÃ©pÃ´t (dÃ©pend du rÃ©seau/environnement).
 - [ ] Validation terrain/agronome des recommandations et des notes de rotation.
 - [ ] Envoi SMS/USSD rÃ©el via fournisseur, file Celery avec Redis/worker et durcissement des accÃ¨s (hors pÃ©rimÃ¨tre dÃ©mo).
