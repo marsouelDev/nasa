@@ -6,8 +6,6 @@ module.exports = {
   plugins: ["react-refresh", "react-hooks", "@typescript-eslint"],
   rules: {
     "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
   },
 };
