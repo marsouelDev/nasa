@@ -1,9 +1,11 @@
 /** Coquille de l'application : en-tête, navigation et page courante. */
 
-import Carte from "./components/Carte";
-import Tendances from "./pages/Tendances";
-import Rotations from "./pages/Rotations";
-import ConsoleSMS from "./pages/ConsoleSMS";
+import { Suspense, lazy } from "react";
+
+const Carte = lazy(() => import("./components/Carte"));
+const Tendances = lazy(() => import("./pages/Tendances"));
+const Rotations = lazy(() => import("./pages/Rotations"));
+const ConsoleSMS = lazy(() => import("./pages/ConsoleSMS"));
 
 const LIENS = [
   { chemin: "/", libelle: "Carte" },
@@ -11,6 +13,14 @@ const LIENS = [
   { chemin: "/rotations", libelle: "Rotations" },
   { chemin: "/sms", libelle: "SMS / USSD" },
 ];
+
+function ChargementPage() {
+  return (
+    <p role="status" className="page-note">
+      Chargement…
+    </p>
+  );
+}
 
 export default function App() {
   const chemin = (window.location.pathname.replace(/\/+$/, "") || "/") as string;
@@ -37,7 +47,9 @@ export default function App() {
           ))}
         </nav>
       </header>
-      <main className="app-contenu">{page}</main>
+      <main className="app-contenu">
+        <Suspense fallback={<ChargementPage />}>{page}</Suspense>
+      </main>
     </div>
   );
 }
