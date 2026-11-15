@@ -70,11 +70,25 @@ def assess(
     else:
         confiance = "faible"
 
-    explication = (
-        f"{jours_secs} jour(s) consécutif(s) sous {SEUIL_PLUIE_SECHE_MM:g} mm en fin de période, "
-        f"cumul de {pluie_cumulee if pluie_cumulee is not None else '?'} mm "
-        f"sur les {len(recentes)} derniers jours."
-    )
+    if jours_secs > 0:
+        pluriel = "s" if jours_secs > 1 else ""
+        if niveau == "élevé":
+            explication = (
+                f"Risque élevé de poche de sécheresse, surtout à cause de {jours_secs} jour{pluriel} "
+                "consécutif{s} sans pluie significative en fin de période.".format(s=pluriel)
+            )
+        elif niveau == "moyen":
+            explication = (
+                f"Risque moyen de poche de sécheresse, avec {jours_secs} jour{pluriel} "
+                "consécutif{s} sans pluie significative en fin de période.".format(s=pluriel)
+            )
+        else:
+            explication = (
+                f"Risque faible de poche de sécheresse : {jours_secs} jour{pluriel} "
+                "consécutif{s} sans pluie significative récemment.".format(s=pluriel)
+            )
+    else:
+        explication = "Risque faible de poche de sécheresse : des pluies récentes ont été observées."
 
     return {
         "disponible": True,

@@ -155,6 +155,61 @@ def _confiance(artefact: dict) -> str:
     return "faible"
 
 
+def _facteur_lisible(colonne: str, valeur: float) -> str | None:
+    """Traduit une variable du modèle en facteur compréhensible en français."""
+    if colonne == "dry_days14":
+        jours = max(0, int(round(valeur)))
+        if jours <= 0:
+            return None
+        if jours == 1:
+            return "1 jour sans pluie sur les 14 derniers jours"
+        return f"{jours} jours sans pluie sur les 14 derniers jours"
+    if colonne == "rain30":
+        pluie = max(0.0, float(valeur))
+        if pluie < 5:
+            return "une pluie très faible sur les 30 derniers jours"
+        if pluie < 20:
+            return "peu de pluie sur les 30 derniers jours"
+        return None
+    if colonne == "rain7":
+        pluie = max(0.0, float(valeur))
+        if pluie < 1:
+            return "aucune pluie notable sur les 7 derniers jours"
+        if pluie < 5:
+            return "très peu de pluie sur les 7 derniers jours"
+        return None
+    if colonne == "tmax7":
+        if valeur >= 33:
+            return "une forte chaleur sur les 7 derniers jours"
+        return None
+    return None
+
+
+def _explication_lisible(niveau: str, variables: dict[str, float], artefact: dict) -> str:
+    """Produit une explication en français, sans nom de variable ni valeur brute technique."""
+    importances = artefact.get("variables_importantes") or {}
+    ordre = sorted(COLONNES, key=lambda colonne: -float(importances.get(colonne, 0.0)))
+    facteurs: list[str] = []
+    for colonne in ordre:
+        facteur = _facteur_lisible(colonne, variables.get(colonne, 0.0))
+        if facteur and facteur not in facteurs:
+            facteurs.append(facteur)
+        if len(facteurs) >= 2:
+            break
+
+    prefixe = {
+        "élevé": "Risque élevé de poche de sécheresse dans les prochains jours",
+        "moyen": "Risque moyen de poche de sécheresse dans les prochains jours",
+        "faible": "Risque faible de poche de sécheresse dans les prochains jours",
+    }.get(niveau, "Risque de poche de sécheresse dans les prochains jours")
+
+    if facteurs:
+        return f"{prefixe}, surtout à cause de {facteurs[0]}" + (
+            f" et de {facteurs[1]}." if len(facteurs) > 1 else "."
+        )
+    return f"{prefixe}, d'après les conditions météo récentes."
+
+
 def predire(artefact: dict, lignes: list[tuple[date, float | None, float | None, float | None]]) -> dict:
     """Prophétise une poche de sécheresse à partir des données disponibles."""
     modele = artefact["modèle"]
@@ -171,12 +226,7 @@ def predire(artefact: dict, lignes: list[tuple[date, float | None, float | None,
         "élevé" if score >= SEUIL_PREDICTION_ELEVE else "moyen" if score >= SEUIL_PREDICTION_MOYEN else "faible"
     )
     variables = {colonne: float(derniere[colonne]) for colonne in COLONNES}
-    ordre = sorted(COLONNES, key=lambda colonne: -artefact["variables_importantes"][colonne])
-    contributeurs = ", ".join(f"{colonne} ({variables[colonne]:.2f})" for colonne in ordre[:3])
-    explication = (
-        f"Le modèle prédit une poche de sécheresse dans les {FENETRE_TARGET_JOURS} prochains jours "
-        f"avec une probabilité de {score}. Variables explicatives les plus influentes : {contributeurs}."
-    )
+    explication = _explication_lisible(niveau, variables, artefact)
 
     return {
         "disponible": True,
